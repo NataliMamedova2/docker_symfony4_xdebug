@@ -1,0 +1,65 @@
+version: '2'
+
+services:
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - "./.data/db:/var/lib/mysql"
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: ${MYSQL_HOST}
+  php:
+    build:
+      context: application
+      dockerfile: Dockerfile.Dev
+    environment:
+      DEBUG: "true"
+      SERVICE_NAME: ${SERVICE_NAME}
+      SERVICE_DOMAIN: ${SERVICE_DOMAIN}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: ${MYSQL_HOST}
+      PHP_IDE_CONFIG: "serverName=hubber"
+    volumes:
+      - ./application:/var/www:Z
+      - ./logs/${SERVICE_NAME}.${SERVICE_DOMAIN}:/var/www/var/logs
+
+  #    gateway:
+  #        build: application
+  #        environment:
+  #            DEBUG: "true"
+  #            SERVICE_NAME: gateway
+  #            SERVICE_DOMAIN: gateway.hubber.local
+  #            MYSQL_USER: ${MYSQL_USER}
+  #            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  #            MYSQL_DATABASE: ${MYSQL_DATABASE}
+  #        volumes:
+  #            - ./../gateway/application:/var/www:Z
+  #            - ./logs/gateway.hubber.local:/var/www/var/logs
+
+  nginx:
+    image: garlic/nginx
+    ports:
+      - 80:80
+    volumes:
+      - ./application:/var/www:Z
+      - ./logs/nginx/:/var/log/nginx
+
+  rabbitmq:
+    image: rabbitmq:3.7.8-management
+    ports:
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
+    volumes:
+      - ./.data/rabbitmq/data:/var/lib/rabbitmq:rw
+      - ./.data/rabbitmq/definitions.json:/opt/definitions.json:ro
+      - ./.data/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
